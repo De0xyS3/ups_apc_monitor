@@ -1,0 +1,8 @@
+flask
+requests
+beautifulsoup4
+pysnmp
+paramiko
+python-telegram-bot
+flask_sqlalchemy
+Flask-Migrate

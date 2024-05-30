@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+ 
+
+    <h1 class="mt-5">Host List</h1>
+
+<div class="mt-3">
+    {% for message, category in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+
+
+    {% if charging_battery %}
+        <div class="alert alert-warning" role="alert">
+            Las baterías se están cargando. La función de apagado automático está bloqueada.
+        </div>
+    {% endif %}
+
+    {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+            {{ error_message }}
+        </div>
+    {% endif %}
+    
+    <div class="table-responsive mt-3">
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>IP Address</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                    <th>Shutdown</th> <!-- New column for shutdown button -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for host in hosts %}
+                    <tr>
+                        <td>{{ host.name }}</td>
+                        <td>{{ host.ip_address }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if host.status == 'activo' else 'danger' }}">
+                                {{ host.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('delete_host', host_id=host.id) }}" method="post">
+                                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                            </form>
+                        </td>
+                        <td> <!-- New cell for shutdown button -->
+                            <form action="{{ url_for('shutdown_host', host_id=host.id) }}" method="post">
+                                <button type="submit" class="btn btn-warning btn-sm">Apagar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script>
+        setInterval(function() {
+            fetch('{{ url_for("update_status") }}')
+                .then(response => response.text())
+                .then(data => {
+                    location.reload();
+                });
+        }, 10000);  // 10 seconds
+    </script>
+{% endblock %}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>{% block title %}Battery Management{% endblock %}</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Battery Management</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('add_host') }}">Add Host</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('set_threshold') }}">Set Threshold</a>
+                </li>
+            </ul>
+        </div>
+        <span class="navbar-text">
+            <strong>Battery Status:</strong> <span id="battery-status">{{ battery_state }}%</span>
+        </span>
+    </nav>
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-warning" role="alert">
+                    {% for message in messages %}
+                        {{ message }}<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        setInterval(function() {
+            fetch('{{ url_for("update_status") }}')
+                .then(response => response.text())
+                .then(data => {
+                    location.reload();
+                });
+        }, 10000);  // 10 seconds
+    </script>
+</body>
+</html>
