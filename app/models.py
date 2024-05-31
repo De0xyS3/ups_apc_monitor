@@ -7,10 +7,12 @@ class Host(db.Model):
     username = db.Column(db.String(64))
     password = db.Column(db.String(128))
     port = db.Column(db.Integer, default=22)
+    category = db.Column(db.String(64))
     status = db.Column(db.String(64), default='unknown')
 
     def __repr__(self):
         return f'<Host {self.name}>'
+
 
 class BatteryThreshold(db.Model):
     id = db.Column(db.Integer, primary_key=True)
