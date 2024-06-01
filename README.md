@@ -1,6 +1,7 @@
 # UPS Monitor
 
 UPS Monitor es una aplicación web desarrollada con Flask que permite monitorear y gestionar servidores y el estado de las baterías de un sistema de alimentación ininterrumpida (UPS).
+![image](https://github.com/De0xyS3/ups_apc_monitor/assets/87393512/11c87cc6-1b24-44b2-9a4a-e5e37b579089)
 
 ## Características
 
