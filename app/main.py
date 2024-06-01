@@ -3,7 +3,7 @@ from app import app, db
 from app.models import Host, BatteryThreshold
 from app.utils import ping_host, send_telegram_message
 from app.snmp_battery_state import get_snmp_battery_state
-from app.shutdown_server import shutdown_server, shutdown_server_manual
+from app.shutdown_server import shutdown_server, shutdown_host_manual
 import time
 from threading import Thread
 import subprocess
@@ -11,11 +11,6 @@ from flask import current_app
 
 thread = None
 
-#@app.route('/')
-#def index():
-#    hosts = Host.query.all()
-#    battery_state = get_snmp_battery_state()
-#    return render_template('index.html', hosts=hosts, battery_state=battery_state)
 @app.route('/')
 def index():
     hosts = Host.query.all()
@@ -30,20 +25,18 @@ def delete_host(host_id):
     db.session.commit()
     return redirect(url_for('index'))
 
-
 @app.route('/shutdown_host/<int:host_id>', methods=['POST'])
 def shutdown_host(host_id):
     host = Host.query.get_or_404(host_id)
     try:
-        shutdown_server_manual(host.ip_address, host.username, host.password)  # Llama a la función desde shutdown_server.py
+        shutdown_host_manual(host.ip_address, host.username, host.password, host.category)  
+        # Llama a la función shutdown_host() con los datos del host
         print(f'Se está realizando un apagado manual del servidor {host.name}...')
         flash(f'Se está realizando un apagado manual del servidor {host.name}...', 'success')
     except Exception as e:
         print(f'Error al realizar un apagado manual del servidor {host.name}: {e}')
         flash(f'Error al realizar un apagado manual del servidor {host.name}: {e}', 'error')
     return redirect(url_for('index'))
-
-
 
 @app.route('/add_host', methods=['GET', 'POST'])
 def add_host():
@@ -53,15 +46,15 @@ def add_host():
         username = request.form['username']
         password = request.form['password']
         port = request.form['port']
+        category = request.form['category']
 
-        new_host = Host(name=name, ip_address=ip_address, username=username, password=password, port=port)
+        new_host = Host(name=name, ip_address=ip_address, username=username, password=password, port=port, category=category)
         db.session.add(new_host)
         db.session.commit()
 
         return redirect(url_for('index'))
 
     return render_template('add_host.html')
-
 
 @app.route('/update_status')
 def update_status():
@@ -74,13 +67,12 @@ def update_status():
         db.session.commit()
     return redirect(url_for('index'))
 
-
 @app.route('/set_threshold', methods=['GET', 'POST'])
 def set_threshold():
     global thread, stop_thread
 
     if request.method == 'POST':
-        threshold = request.form['threshold']
+        threshold = int(request.form['threshold'])  # Convertir a entero aquí
         threshold_record = BatteryThreshold.query.first()
         if threshold_record:
             threshold_record.threshold = threshold
@@ -108,9 +100,16 @@ def check_battery():
 
         if state is None:
             messages.append(('Sin conexión con el UPS', 'error'))
+            return messages
 
         threshold_record = BatteryThreshold.query.first()
-        threshold = threshold_record.threshold if threshold_record else 100
+        threshold = int(threshold_record.threshold) if threshold_record else 100  # Convertir a entero aquí
+
+        try:
+            state = int(state)  # Asegurarse de que state sea un número
+        except (ValueError, TypeError):
+            messages.append(('El estado de la batería no es un número válido', 'error'))
+            return messages
 
         if state >= threshold:
             messages.append(('La batería está por encima del umbral. No se realizarán acciones.', 'success'))
@@ -119,6 +118,13 @@ def check_battery():
 
         if new_state is None:
             messages.append(('Sin conexión con el UPS', 'error'))
+            return messages
+
+        try:
+            new_state = int(new_state)  # Asegurarse de que new_state sea un número
+        except (ValueError, TypeError):
+            messages.append(('El nuevo estado de la batería no es un número válido', 'error'))
+            return messages
 
         if new_state < threshold:
             if new_state < state:
@@ -129,7 +135,6 @@ def check_battery():
                 messages.append(('La batería está por debajo del umbral, pero está aumentando. No se realizarán acciones.', 'warning'))
 
         return messages
-
 
 def check_battery_periodically():
     global stop_thread
